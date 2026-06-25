@@ -22,13 +22,13 @@ interface ResultTableProps {
 }
 
 export function ResultTable({
-  invalidLinks,
-  lockedLinks,
-  pendingLinks,
-  validLinks,
+  invalidLinks = [],
+  lockedLinks = [],
+  pendingLinks = [],
+  validLinks = [],
   totalDuration,
-  invalidFormatCount,
-  duplicateCount,
+  invalidFormatCount = 0,
+  duplicateCount = 0,
 }: ResultTableProps) {
   const allLinks: LinkInfo[] = [
     ...validLinks.map(link => ({ link, platform: parseLink(link), status: 'valid' as const })),

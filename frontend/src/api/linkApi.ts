@@ -5,6 +5,25 @@ import type { CheckLinksRequest, CheckLinksResponse, SubmissionRecord } from '@/
 // 使用统一的 api 实例（已配置认证拦截器）
 const linkApiInstance = api;
 
+const normalizeStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === 'string');
+};
+
+const normalizeCheckLinksResponse = (data: Partial<CheckLinksResponse>): CheckLinksResponse => ({
+  submission_id: typeof data.submission_id === 'number' ? data.submission_id : 0,
+  invalid_links: normalizeStringArray(data.invalid_links),
+  locked_links: normalizeStringArray(data.locked_links),
+  pending_links: normalizeStringArray(data.pending_links),
+  valid_links: normalizeStringArray(data.valid_links),
+  total_duration: typeof data.total_duration === 'number' ? data.total_duration : undefined,
+  invalid_format_count: typeof data.invalid_format_count === 'number' ? data.invalid_format_count : 0,
+  duplicate_count: typeof data.duplicate_count === 'number' ? data.duplicate_count : 0,
+});
+
 export const linkApi = {
   // 检测链接（公开接口，不需要认证）
   checkLinks: async (data: CheckLinksRequest): Promise<CheckLinksResponse> => {
@@ -12,7 +31,7 @@ export const linkApi = {
     const response = await axios.post<CheckLinksResponse>('/api/v1/links/check', data, {
       timeout: 300000, // 5分钟超时，因为实时检测可能需要较长时间
     });
-    return response.data;
+    return normalizeCheckLinksResponse(response.data);
   },
 
   // 获取提交记录

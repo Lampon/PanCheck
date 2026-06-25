@@ -67,6 +67,15 @@ func (c *TianyiChecker) Check(link string) (*CheckResult, error) {
 
 	if response.ShareId > 0 {
 		if response.NeedAccessCode == 1 && accessCode == "" {
+			// 部分天翼短链本身就是完整分享串，接口仍会返回 needAccessCode=1，
+			// 但这类链接不应被归类到需要额外提取码的 locked_links。
+			if isSelfContainedTianyiShareLink(link) {
+				return &CheckResult{
+					Valid:         true,
+					FailureReason: "",
+					Duration:      duration,
+				}, nil
+			}
 			return &CheckResult{
 				Valid:               true,
 				FailureReason:       "",
@@ -360,4 +369,33 @@ func trimCodeValue(code string) string {
 		}
 	}
 	return code[:end]
+}
+
+func isSelfContainedTianyiShareLink(urlStr string) bool {
+	if strings.Contains(urlStr, "访问码") {
+		return false
+	}
+
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+
+	host := strings.ToLower(parsedURL.Host)
+	switch host {
+	case "cloud.189.cn", "h5.cloud.189.cn":
+	default:
+		return false
+	}
+
+	if strings.HasPrefix(parsedURL.Path, "/t/") {
+		return trimCodeValue(strings.TrimPrefix(parsedURL.Path, "/t/")) != ""
+	}
+
+	fragment := strings.TrimPrefix(parsedURL.Fragment, "#")
+	if strings.HasPrefix(fragment, "/t/") {
+		return trimCodeValue(strings.TrimPrefix(fragment, "/t/")) != ""
+	}
+
+	return false
 }
